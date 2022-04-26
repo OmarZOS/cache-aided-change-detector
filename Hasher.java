@@ -1,5 +1,7 @@
 import helma.xmlrpc.WebServer;
+import lthash.Blake2bDigest;
 import lthash.LtHash32;
+import lthash.Digest;
 
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -12,11 +14,18 @@ public class Hasher
    // HashMap checks   umIndex = new HashMap<Integer,byte[]>();
    // byte[] checksum = ltHash.getChecksum();
    
-   HashMap userIndex = new HashMap<String,String>();
+   HashMap userIndex = new HashMap<String,byte[]>();
 
    LtHash32 ltHash = new LtHash32();
 
    byte[] userChecksum;
+
+   private final Digest digest = new Blake2bDigest();
+
+   public byte[] get_hash(byte[] input) {
+      byte[] hash = this.digest.hash(input);
+      return hash;
+  }
 
    // This public method will be exposed to XML-RPC client
    public Hashtable sumAndDifference(int x, int y) {
@@ -38,9 +47,13 @@ public class Hasher
 
       if (userIndex.containsKey(nodeId)){
          // byte[] checksum 
-         LtHash32 comparableltHash = ltHash;
-         comparableltHash.update((userIndex.get(nodeId)).toString().getBytes(), (nodeId+","+hashableAttributes).getBytes());
-         boolean similar = comparableltHash.checksumEquals(userChecksum);
+         ltHash.applyHashToChecksum((a,b)->a-b,(byte[]) userIndex.get(nodeId));
+
+         byte[] new_node = get_hash((nodeId+","+hashableAttributes).getBytes());
+
+         ltHash.applyHashToChecksum((a,b)->a+b,new_node);
+         
+         boolean similar = ltHash.checksumEquals(userChecksum);
          
          // System.out.println(","+hashableAttributes);
          // System.out.println(","+userIndex.get(nodeId));
@@ -61,26 +74,16 @@ public class Hasher
          propagateUpdate(nodeId,hashableAttributes);
          return false;
       }
-
       
    }
 
-   protected void propagateUpdate(String newnodeId,String newhashableAttributes) {
+   protected void propagateUpdate(String nodeId,String newhashableAttributes) {
       
-      String nodeId = newnodeId;
-      String hashableAttributes;
-      
-      if(userIndex.containsKey(newnodeId)){
-         hashableAttributes =userIndex.get(nodeId).toString();
-         ltHash.update((nodeId+","+hashableAttributes).getBytes(),(newnodeId+","+newhashableAttributes).getBytes());  
-      }
-      else{
+      if(! userIndex.containsKey(nodeId)){
          ltHash.add((nodeId+","+newhashableAttributes).getBytes());  
       }
-
       userChecksum = ltHash.getChecksum();
-         
-      userIndex.put(nodeId,newnodeId +","+newhashableAttributes);
+      userIndex.put(nodeId,get_hash((nodeId +","+newhashableAttributes).getBytes()));
    }
 
    public boolean add_edge_hash(String edgeType) {

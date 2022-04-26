@@ -79,7 +79,7 @@ public class LtHash32 implements LtHash {
         this.checksum = applyHashToChecksum(function, hash);
     }
 
-    private byte[] applyHashToChecksum(BiFunction<Integer, Integer, Integer> function, byte[] inputHash) {
+    public byte[] applyHashToChecksum(BiFunction<Integer, Integer, Integer> function, byte[] inputHash) {
         ByteBuffer checksumWrap = ByteBuffer.wrap(this.checksum);
         ByteBuffer newHashWrap = ByteBuffer.wrap(inputHash);
         for(int i=0; i<inputHash.length; i+=INT_SIZE_IN_BYTES) {
