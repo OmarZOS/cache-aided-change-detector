@@ -22,17 +22,27 @@ public class Hasher
 
    private final Digest digest = new Blake2bDigest();
    
-   static long beforeUsedMem;
+   static long beforeUsedMem=0;
+   static long previous=0;
+   static long afterUsedMem=0;
+   static boolean similar=false;
+
+   Runtime rt = Runtime.getRuntime();
 
    public void set_current_memory_usage_as_default(){
       beforeUsedMem = Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();
    }
 
    public float get_memory_difference(){
-      long afterUsedMem=Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();
-      System.out.print("Memory used: ");
-      System.out.println(afterUsedMem-beforeUsedMem);
-      return (float)(afterUsedMem-beforeUsedMem)/(1000000);
+      afterUsedMem=rt.totalMemory() -rt.freeMemory();// totalMemory -Runtime.getRuntime().freeMemory()
+      // System.out.print("Memory used: ");
+      // System.out.println(afterUsedMem-beforeUsedMem);
+      previous=afterUsedMem-beforeUsedMem;
+      return (float)(previous);
+      // if(afterUsedMem-beforeUsedMem>0){
+      //    return (float)(previous);
+      // }
+      // return (float)(previous);
    }
 
 
@@ -56,7 +66,7 @@ public class Hasher
    }
 
    public boolean add_node_hash(String nodeId,String hashableAttributes) {
-      
+
       // System.out.println("Adding a node");
 
       if (userIndex.containsKey(nodeId)){
@@ -67,7 +77,7 @@ public class Hasher
 
          ltHash.applyHashToChecksum((a,b)->a+b,new_node);
          
-         boolean similar = ltHash.checksumEquals(userChecksum);
+         similar = ltHash.checksumEquals(userChecksum);
          
          // System.out.println(","+hashableAttributes);
          // System.out.println(","+userIndex.get(nodeId));
@@ -102,7 +112,7 @@ public class Hasher
 
          // ltHash.applyHashToChecksum((a,b)->a+b,new_node);
          
-         boolean similar = userIndex_raw.get(nodeId).equals(hashableAttributes);
+         similar = userIndex_raw.get(nodeId).equals(hashableAttributes);
          
          // System.out.println(","+hashableAttributes);
          // System.out.println(","+userIndex.get(nodeId));
@@ -154,7 +164,9 @@ public class Hasher
          int port = Integer.parseInt(System.getenv("HASH_SERVER_PORT"));
          WebServer server = new WebServer(port);
          // Our handler is a regular java object
-         server.addHandler("handler", new Hasher());
+         Hasher hasher = new Hasher();
+         hasher.set_current_memory_usage_as_default();
+         server.addHandler("handler", hasher);
       } catch (Exception exception) {
          System.out.println("JavaServer " + exception.toString());
       }
